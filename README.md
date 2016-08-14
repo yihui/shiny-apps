@@ -1,2 +1,1 @@
-# shiny-apps
-Some of my weird Shiny apps
+A collection of some of my Shiny apps mostly for fun.
