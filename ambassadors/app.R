@@ -5,7 +5,7 @@ shinyApp(
     sidebarLayout(
       sidebarPanel(
         sliderInput('n', 'Sample size', 1000, 80000, 1000),
-        sliderInput('theta', 'Rotate', 0, round(2 * pi, 4), 0),
+        sliderInput('theta', 'Rotate', 0, 360, 0),
         sliderInput('asp', 'Aspect ratio', .05, 1, 1),
         sliderInput('zoom', 'Scale', 0, 100, 0)
       ),
@@ -52,7 +52,7 @@ shinyApp(
       ambassadors2 = sub_data()
       if (is.null(ambassadors2)) return()
       par(mar = c(4, 4, 1, 0))
-      ambassadors2[, 1:2] = rotate(ambassadors2[, 1:2], input$theta)
+      ambassadors2[, 1:2] = rotate(ambassadors2[, 1:2], input$theta/180 * pi)
       with(
         ambassadors2,
         plot(x, y, col = color, pch = 20, asp = input$asp,
