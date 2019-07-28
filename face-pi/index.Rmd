@@ -1,0 +1,105 @@
+---
+title: "An Interactive Shiny R Markdown Document"
+author: "Yihui Xie"
+runtime: shiny
+---
+
+## Inputs and Outputs
+
+You can embed Shiny inputs and outputs in your document. Outputs are automatically updated whenever inputs change.  This demonstrates how a standard R plot can be made interactive by wrapping it in the Shiny `renderPlot` function. The `selectInput` and `sliderInput` functions create the input widgets used to drive the plot.
+
+```{r eruptions, echo=FALSE}
+library(shiny)
+inputPanel(
+  selectInput("n_breaks", label = "Number of bins:",
+              choices = c(10, 20, 35, 50), selected = 20),
+  
+  sliderInput("bw_adjust", label = "Bandwidth adjustment:",
+              min = 0.2, max = 2, value = 1, step = 0.2)
+)
+
+renderPlot({
+  hist(faithful$eruptions, probability = TRUE, breaks = as.numeric(input$n_breaks),
+       col = 'gray', border = 'white',
+       xlab = "Duration (minutes)", main = "Geyser eruption duration")
+  
+  dens <- density(faithful$eruptions, adjust = input$bw_adjust)
+  lines(dens, col = "blue", lwd = 3)
+})
+```
+
+## A Monte-Carlo Simulation
+
+When a face is detected from your web camera (if you have one available), the simulation for the value of `pi` will start, otherwise the simulation will pause. The face detection JS library [pico.js](https://github.com/tehnokv/picojs) is used in the demo below. The plots are generated via the R package **plotly**.
+
+```{r, message=FALSE, echo=FALSE}
+set.seed(0728)
+library(shiny)
+library(plotly)
+tags$script(src = "www/camvas.js")
+tags$script(src = "www/pico.js")
+tags$script(src = "www/init.js")
+actionButton("button", "Start")
+
+tags$table(tags$tr(
+  tags$td(tags$canvas(width = 480, height = 480)),
+  tags$td(plotlyOutput("plot1", width = '480px', height = '480px'))
+))
+
+plotlyOutput("plot2", height = '300px')
+
+rand = function() runif(1, -1, 1)
+x = rand(); y = rand()
+dot_sym = function(x, y) {
+  I(if (x^2 + y^2 <= 1) 'circle-dot' else 'x')
+}
+dot_col = function(x, y) {
+  I(if (x^2 + y^2 <= 1) 'lightgray' else 'black')
+}
+
+sim_pi = function() 4 * mean(x^2 + y^2 <= 1)
+s = sim_pi()
+
+p1 = plot_ly(
+  x = x, y = y, type = 'scatter', symbol = dot_sym(x, y), color = dot_col(x, y),
+  size = 10, mode = 'markers'
+) %>%
+  layout(
+    xaxis = list(range = c(-1, 1)),
+    yaxis = list(range = c(-1, 1))
+  )
+
+p2 = plot_ly(
+  y = s,
+  type = 'scatter',
+  mode = 'lines',
+  line = list(
+    color = '#636EFA',
+    width = 3
+  )
+) %>%
+  layout(
+    yaxis = list(range = c(2.5, 3.5))
+  )
+
+output$plot1 = renderPlotly(p1)
+output$plot2 = renderPlotly(p2)
+proxy1 = plotlyProxy("plot1")
+proxy2 = plotlyProxy("plot2")
+
+observe({
+  invalidateLater(200)
+  d = isolate(input$detected)
+  if (input$button > 0 && is.numeric(d) && d == 1) {
+    x2 = rand(); y2 = rand()
+    x <<- c(x, x2); y <<- c(y, y2)
+    s2 = sim_pi()
+    proxy1 %>%
+      plotlyProxyInvoke("addTraces", list(x = list(x2), y = list(y2), marker = list(symbol = dot_sym(x2, y2), color = dot_col(x2, y2), size = 10)))
+    proxy2 %>%
+      plotlyProxyInvoke("extendTraces", list(y = list(list(s2))), list(0))
+  }
+})
+```
+
+The R Markdown source document is available at https://github.com/yihui/shiny-apps/tree/master/face-pi.
